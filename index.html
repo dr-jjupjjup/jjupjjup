@@ -5,36 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>쩝쩝박사 맛집지도</title>
     
-    <!-- 1. 외부 라이브러리 (CSS) - 최우선 로드 -->
+    <!-- 라이브러리 (CSS) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     
     <style>
         :root {
-            --bg: #111; --card: #222; --point: #ff3b30; --text: #eee;
+            --bg: #111111;
+            --card: #1c1c1e;
+            --point: #ff3b30;
+            --text-main: #ffffff;
+            --text-sub: #8e8e93;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
         }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; overflow: hidden; }
-        
-        /* 헤더 및 필터 */
-        #hd { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(17,17,17,0.8); backdrop-filter: blur(10px); padding-top: env(safe-area-inset-top); }
-        .tabs { display: flex; padding: 10px; gap: 8px; overflow-x: auto; }
-        .tab { padding: 8px 16px; border-radius: 20px; background: #333; font-size: 14px; white-space: nowrap; cursor: pointer; }
-        .tab.on { background: var(--point); font-weight: bold; }
 
-        /* 지도 영역 */
-        #map { width: 100%; height: 100vh; z-index: 1; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: var(--bg); color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
 
-        /* 바텀 시트 및 상세정보 */
-        #sh { position: fixed; bottom: -100%; left: 0; right: 0; background: var(--card); z-index: 2000; transition: 0.3s; border-radius: 20px 20px 0 0; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
-        #sh.on { bottom: 0; }
-        #ov { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1500; display: none; }
-        #ov.on { display: block; }
+        /* 세련된 헤더 (Blur 효과) */
+        #hd { 
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(17, 17, 17, 0.75);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            padding-top: var(--safe-top);
+            border-bottom: 0.5px solid rgba(255,255,255,0.1);
+        }
         
-        .btn-link { display: block; width: 100%; padding: 15px; background: #fee500; color: #000; text-align: center; border-radius: 12px; text-decoration: none; font-weight: bold; margin-top: 15px; }
+        .tabs { 
+            display: flex; padding: 12px 16px; gap: 8px; 
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
         
-        /* 리스트 뷰 (선택사항) */
-        #list-container { display: none; } /* 일단 지도를 메인으로 설정 */
+        .tab { 
+            padding: 8px 18px; border-radius: 20px; 
+            background: #2c2c2e; font-size: 14px; font-weight: 500;
+            color: var(--text-sub); white-space: nowrap; transition: 0.2s;
+        }
+        .tab.on { background: var(--point); color: #fff; font-weight: 700; }
+
+        /* 지도 */
+        #map { width: 100%; height: 100vh; z-index: 1; background: var(--bg); }
+
+        /* 바텀 시트 (iOS 스타일 슬라이드) */
+        #sh { 
+            position: fixed; bottom: -100%; left: 0; right: 0; 
+            background: var(--card); z-index: 2000; 
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            border-radius: 24px 24px 0 0; 
+            padding: 20px; 
+            padding-bottom: calc(30px + var(--safe-bottom));
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+        #sh.on { transform: translateY(-100%); bottom: 0; }
+
+        .handle { 
+            width: 36px; height: 5px; background: #3a3a3c; 
+            margin: 0 auto 20px; border-radius: 10px; 
+        }
+
+        #sn { font-size: 24px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.5px; }
+        #sa { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; }
+        #sm { 
+            background: #2c2c2e; padding: 16px; border-radius: 16px; 
+            font-size: 15px; line-height: 1.6; color: #d1d1d6;
+        }
+
+        /* 버튼 디자인 */
+        .btn-link { 
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 56px; background: #fee500; color: #191919; 
+            text-align: center; border-radius: 16px; text-decoration: none; 
+            font-weight: 700; margin-top: 20px; font-size: 16px;
+        }
+
+        /* 오버레이 */
+        #ov { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4); 
+            z-index: 1500; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        #ov.on { opacity: 1; pointer-events: auto; }
+
+        /* 마커 클러스터 커스텀 스타일 (선택) */
+        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(255, 59, 48, 0.6); }
+        .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background-color: rgba(255, 59, 48, 0.9); color: #fff; }
     </style>
 </head>
 <body>
@@ -51,43 +112,45 @@
     <div id="map"></div>
     <div id="ov"></div>
 
-    <!-- 바텀 시트 (상세정보 창) -->
     <div id="sh">
-        <div style="width:40px; height:4px; background:#444; margin:0 auto 15px; border-radius:2px;"></div>
-        <h2 id="sn" style="margin:0 0 8px 0; font-size:22px;">가게명</h2>
-        <p id="sa" style="margin:0 0 12px 0; color:#aaa; font-size:14px;">주소 정보</p>
-        <div id="sm" style="background:#333; padding:15px; border-radius:10px; font-size:15px; line-height:1.5;">메모 내용</div>
-        <a id="klink" href="#" target="_blank" class="btn-link">카카오맵에서 길찾기</a>
+        <div class="handle"></div>
+        <h2 id="sn">가게명</h2>
+        <p id="sa">주소 정보</p>
+        <div id="sm">가게에 대한 메모가 여기에 표시됩니다.</div>
+        <a id="klink" href="#" target="_blank" class="btn-link">
+            <img src="https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_medium.png" style="width:20px; margin-right:8px;">
+            카카오맵 길찾기
+        </a>
     </div>
 
-    <!-- 2. 외부 라이브러리 (JS) - 코드 실행 전 로드 필수 -->
+    <!-- 라이브러리 (JS) - 순서 엄격 준수 -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <script>
-        // 1. 데이터 정의 (CORS 에러 방지를 위해 내부에 선언)
+        //[cite: 3]
         const PLACES = [
             { name: "맛있겠다", lat: 37.5665, lng: 126.9780, cate: "맛집", address: "서울 중구 태평로1가 31", memo: "시청 근처 가성비 최고 맛집!" },
             { name: "분위기카페", lat: 37.5511, lng: 126.9882, cate: "카페", address: "서울 용산구 남산공원길 105", memo: "전망이 끝내주는 카페입니다." }
-            // 여기에 더 많은 데이터를 추가하세요.
         ];
 
-        // 2. 지도 초기화
-        const map = L.map('map', { zoomControl: false }).setView([37.5665, 126.9780], 13);
+        // 지도 초기화
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([37.5665, 126.9780], 13);
         
-        // 다크모드 타일 적용 (반드시 HTTPS 사용)
+        // 다크모드 타일 적용 (HTTPS)[cite: 3]
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         const markers = L.markerClusterGroup();
         const bottomSheet = document.getElementById('sh');
         const overlay = document.getElementById('ov');
 
-        // 3. 기능 함수
+        // 상세페이지 열기 (애니메이션 최적화)
         function showDetail(p) {
             document.getElementById('sn').innerText = p.name;
             document.getElementById('sa').innerText = p.address;
-            document.getElementById('sm').innerText = p.memo;
+            document.getElementById('sm').innerText = p.memo || "등록된 메모가 없습니다.";
             document.getElementById('klink').href = `https://map.kakao.com/link/to/${p.name},${p.lat},${p.lng}`;
+            
             bottomSheet.classList.add('on');
             overlay.classList.add('on');
         }
@@ -97,13 +160,15 @@
             overlay.classList.remove('on');
         }
 
+        // 마커 렌더링[cite: 3]
         function renderMarkers(filter = '전체') {
             markers.clearLayers();
             const filtered = filter === '전체' ? PLACES : PLACES.filter(p => p.cate === filter);
             
             filtered.forEach(p => {
                 const m = L.marker([p.lat, p.lng]);
-                m.on('click', () => {
+                m.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
                     map.panTo([p.lat, p.lng]);
                     showDetail(p);
                 });
@@ -112,19 +177,22 @@
             map.addLayer(markers);
         }
 
-        // 4. 이벤트 연결
+        // 탭 클릭 이벤트
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.onclick = function() {
+            tab.addEventListener('click', function() {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
                 this.classList.add('on');
                 renderMarkers(this.innerText);
-            };
+            });
         });
 
         overlay.onclick = closeDetail;
+        map.on('click', closeDetail);
 
-        // 초기 렌더링
-        renderMarkers();
+        // 첫 실행[cite: 3]
+        window.onload = () => {
+            renderMarkers();
+        };
     </script>
 </body>
 </html>
