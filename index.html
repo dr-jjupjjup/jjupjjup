@@ -270,7 +270,112 @@ function rl() {
     });
   }
 }
+// 4. 지도 초기화 (기본 위치: 서울)
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([37.5665, 126.9780], 12);
 
+        // 다크 모드 지도 타일 설정 (CartoDB Dark Matter)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        // 마커 클러스터 생성 (성능 최적화)
+        const markers = L.markerClusterGroup({
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true
+        });
+
+        // UI 요소 참조
+        const bottomSheet = document.getElementById('sh');
+        const overlay = document.getElementById('ov');
+        const listContainer = document.getElementById('list-container');
+
+        // 5. 로직 함수 정의
+
+        // 상세 페이지(바텀 시트) 열기
+        function openDetail(place) {
+            document.getElementById('sn').innerText = place.name;
+            document.getElementById('sa').innerText = place.address;
+            document.getElementById('sm').innerText = place.memo || "메모가 없습니다.";
+            
+            // 카카오맵 길찾기 링크 연결
+            const kLink = document.getElementById('klink');
+            kLink.href = `https://map.kakao.com/link/to/${place.name},${place.lat},${place.lng}`;
+
+            bottomSheet.classList.add('on');
+            overlay.classList.add('on');
+        }
+
+        // 상세 페이지 닫기
+        function closeDetail() {
+            bottomSheet.classList.remove('on');
+            overlay.classList.remove('on');
+        }
+
+        // 리스트와 마커 렌더링
+        function renderPlaces(filter = '전체') {
+            // 기존 데이터 제거
+            markers.clearLayers();
+            listContainer.innerHTML = '';
+
+            const filtered = filter === '전체' ? PLACES : PLACES.filter(p => p.cate === filter);
+
+            filtered.forEach(p => {
+                // 마커 추가
+                const marker = L.marker([p.lat, p.lng]);
+                marker.on('click', () => {
+                    map.panTo([p.lat, p.lng]);
+                    openDetail(p);
+                });
+                markers.addLayer(marker);
+
+                // 리스트 아이템 추가
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = `
+                    <div style="font-weight:bold; font-size:16px;">${p.name}</div>
+                    <div style="font-size:12px; color:#888; margin-top:4px;">${p.address}</div>
+                    <div style="font-size:13px; color:#aaa; margin-top:8px;">${p.memo}</div>
+                `;
+                item.onclick = () => {
+                    map.setView([p.lat, p.lng], 16);
+                    openDetail(p);
+                };
+                listContainer.appendChild(item);
+            });
+
+            map.addLayer(markers);
+            
+            // 검색 결과가 있으면 첫 번째 위치로 지도 이동 (선택 사항)
+            if (filtered.length > 0) {
+                const group = new L.featureGroup(filtered.map(p => L.marker([p.lat, p.lng])));
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // 6. 이벤트 리스너 등록
+
+        // 필터 탭 클릭 이벤트
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+                this.classList.add('on');
+                renderPlaces(this.innerText);
+            });
+        });
+
+        // 오버레이 클릭 시 닫기
+        overlay.addEventListener('click', closeDetail);
+
+        // 초기 실행
+        window.onload = () => {
+            renderPlaces();
+        };
+    </script>
+</body>
+</html>
 // 기존 서비스워커 전부 제거
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(function(regs) {
