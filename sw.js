@@ -1,4 +1,4 @@
-const CACHE = 'jjupjjup-v2'
+const CACHE = 'jjupjjup-v3'
 const ASSETS = [
   './index.html',
   './places.json',
