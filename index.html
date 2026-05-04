@@ -270,11 +270,8 @@ function rl() {
   }
 }
 
-// 기존 서비스워커 전부 제거
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    for (var r of regs) r.unregister();
-  });
+  navigator.serviceWorker.register('./sw.js');
 }
 </script>
 </body>
